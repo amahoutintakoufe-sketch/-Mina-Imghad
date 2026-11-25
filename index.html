@@ -197,10 +197,14 @@ input,textarea{border-radius:14px;-webkit-backdrop-filter:blur(8px);backdrop-fil
 <div class="toast" id="toast"></div>
 
 <script>
+setTimeout(function(){var s=document.getElementById('splash'),l=document.getElementById('login');if(s&&l&&s.classList.contains('on')){s.classList.remove('on');l.classList.add('on')}},8000);
+addEventListener('error',function(e){var d=document.createElement('div');d.style.cssText='position:fixed;bottom:8px;inset-inline:8px;z-index:99;background:#7a1f2b;color:#fff;font:12px sans-serif;padding:8px;border-radius:8px;direction:ltr';d.textContent='Error: '+e.message;document.body.appendChild(d)});
+</script>
+<script>
 const $=s=>document.querySelector(s);
 /* ضع هنا بيانات مشروع Supabase (Project URL و anon public key) */
 const SUPABASE_URL='https://yoafsodjebvbzecbpsjp.supabase.co',SUPABASE_KEY='sb_publishable_UuLAJk7mINLBlkpvsDf4jQ_2NrhWREx';
-const sb=(SUPABASE_URL&&SUPABASE_KEY&&window.supabase)?supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+let sb=null;try{if(SUPABASE_URL&&SUPABASE_KEY&&window.supabase)sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{detectSessionInUrl:false}})}catch(e){console.error(e)}
 const directory={"amine@mail.com":"أمين","tilelli@mail.com":"تيليلي"};
 let pending='',tab='chats',cur=null;
 const S={
@@ -210,7 +214,7 @@ const S={
 };
 function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>e.style.display='none',4500)}
 function show(id){document.querySelectorAll('.scr').forEach(s=>s.classList.toggle('on',s.id===id))}
-setTimeout(async()=>{if(sb){try{const{data}=await sb.auth.getSession();if(data.session){show('app');render();return}}catch(e){}}show('login')},2800);
+setTimeout(async()=>{let ok=false;if(sb){try{const r=await Promise.race([sb.auth.getSession(),new Promise((_,j)=>setTimeout(j,2500))]);ok=!!(r&&r.data&&r.data.session)}catch(e){}}if(ok){show('app');render()}else show('login')},2800);
 
 /* login */
 const dig=s=>s.replace(/[\u0660-\u0669]/g,d=>d.charCodeAt(0)-1632).replace(/[\u06F0-\u06F9]/g,d=>d.charCodeAt(0)-1776);
@@ -380,4 +384,20 @@ function statTxt(s){const t=Object.values(s.react||{}).reduce((a,b)=>a+b,0);retu
 function simulate(s){['سلمى','أمين','تيليلي'].forEach((f,i)=>setTimeout(()=>{s.views.push(f);if(Math.random()>.35){const e=EM[Math.floor(Math.random()*EM.length)];s.react[e]=(s.react[e]||0)+1}const b=$('#vstat');if(b&&curSt===s)b.textContent=statTxt(s)},2500*(i+1)))}
 function viewStory(s){
   s.react=s.react||{};s.views=s.views||[];curSt=s;const own=s.n==='أنا';
-  const m=s.media?`<div class="vmed">${s.media.type==='video'?`<video src="${s.media.url}" autoplay loop playsinline disablepictureinp
+  const m=s.media?`<div class="vmed">${s.media.type==='video'?`<video src="${s.media.url}" autoplay loop playsinline disablepictureinpicture disableremoteplayback controlslist="nodownload noplaybackrate nofullscreen"></video>`:`<img src="${s.media.url}" alt="" draggable="false">`}<div class="shield"></div></div>`:`<div class="vtxt">${esc(s.t)}</div>`;
+  $('#vsc').innerHTML=`<div class="vtop"><span>${esc(s.n)} · قبل قليل</span><button data-vc aria-label="إغلاق">✕</button></div>${m}${s.media&&s.t?`<div class="vcap">${esc(s.t)}</div>`:''}${own?`<button class="vstat" id="vstat">${statTxt(s)}</button>`:`<div class="vreact">${EM.map(e=>`<button data-em="${e}" class="${s.mine===e?'on':''}" aria-label="تفاعل ${e}">${e}</button>`).join('')}</div>`}`;
+  $('#viewer').classList.add('on')}
+function closeV(){$('#viewer').classList.remove('on');$('#vsc').innerHTML='';curSt=null}
+function showViewers(){const s=curSt;closeV();const rs=Object.entries(s.react||{});
+  sheet(`<h2>مشاهدات القصة</h2><p class="note">${s.views.length} مشاهدة (نسخة تجريبية: المشاهدون أصدقاء افتراضيون)</p>${s.views.map(n=>`<div class="row"><div class="av">${esc(n[0])}</div><div class="meta"><b>${esc(n)}</b></div></div>`).join('')||'<p class="note">لا مشاهدات بعد.</p>'}<h2>التفاعلات</h2><p>${rs.map(([e,c])=>e+' '+c).join('   ')||'لا تفاعلات بعد.'}</p><button class="btn ghost" data-close>إغلاق</button>`)}
+$('#viewer').onclick=e=>{
+  if(e.target.id==='viewer'||e.target.closest('[data-vc]')){closeV();return}
+  const em=e.target.closest('[data-em]');
+  if(em&&curSt){const k=em.dataset.em;if(curSt.mine){curSt.react[curSt.mine]=Math.max(0,(curSt.react[curSt.mine]||1)-1)}curSt.mine=k;curSt.react[k]=(curSt.react[k]||0)+1;
+    document.querySelectorAll('.vreact button').forEach(b=>b.classList.toggle('on',b===em));toast('أُرسل تفاعلك '+k)}
+  if(e.target.closest('#vstat'))showViewers()};
+$('#viewer').oncontextmenu=e=>e.preventDefault();
+$('#rules').onclick=()=>sheet(`<h2>قواعد مينا امغاد</h2><div class="card"><p>١. لا دخول إلا ببريد إلكتروني مؤكَّد بالرمز.<br>٢. لا يُعثر على أحد إلا بمعرفة بريده.<br>٣. القصص تظهر للأصدقاء فقط وتختفي بعد 24 ساعة.<br>٤. كل مجموعة لها قواعدها ويمكن للمشرف إزالة المخالفين.<br>٥. الإساءة والابتزاز والانتحال تؤدي إلى الحظر.</p></div><button class="btn ghost" data-close>حسناً</button>`);
+</script>
+</body>
+</html>
